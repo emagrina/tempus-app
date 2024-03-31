@@ -8,11 +8,13 @@ datasource db {
 }
 
 model Organization {
-    id           String              @id @default(auto()) @map("_id") @db.ObjectId
-    name         String
-    primaryColor String?
-    owners       OrganizationOwner[]
-    Team         Team[]
+    id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+    name                  String
+    primaryColor          String?
+    owners                OrganizationOwner[]
+    Team                  Team[]
+    AbsenceType           AbsenceType[]
+    DefaultAbsenceSetting DefaultAbsenceSetting[]
 }
 
 model Team {
@@ -79,6 +81,7 @@ model User {
     Invitation         Invitation[]
     AuditLog           AuditLog[]
     Notification       Notification[]
+    UserAbsence        UserAbsence[]
 }
 
 model OrganizationOwner {
@@ -100,6 +103,40 @@ model Invitation {
     status     String // Ejemplos: "pending", "accepted", "declined"
     team       Team     @relation(fields: [teamId], references: [id])
     inviter    User     @relation(fields: [invitedBy], references: [id])
+}
+
+model DefaultAbsenceSetting {
+    id              String       @id @default(auto()) @map("_id") @db.ObjectId
+    organizationId  String       @db.ObjectId
+    absenceTypeId   String       @db.ObjectId
+    defaultDuration Int // Duración por defecto en días o horas, según la unidad del AbsenceType
+    organization    Organization @relation(fields: [organizationId], references: [id])
+    absenceType     AbsenceType  @relation(fields: [absenceTypeId], references: [id])
+}
+
+model AbsenceType {
+    id             String       @id @default(auto()) @map("_id") @db.ObjectId
+    organizationId String       @db.ObjectId
+    name           String // Nombre del tipo de ausencia, por ejemplo, "Vacaciones", "Personal", etc.
+    unit           String // "days" o "hours", indica si la ausencia se cuenta por días o por horas
+    organization   Organization @relation(fields: [organizationId], references: [id])
+
+    userAbsences          UserAbsence[]
+    DefaultAbsenceSetting DefaultAbsenceSetting[]
+}
+
+model UserAbsence {
+    id            String    @id @default(auto()) @map("_id") @db.ObjectId
+    userId        String    @db.ObjectId
+    absenceTypeId String    @db.ObjectId
+    startDate     DateTime
+    endDate       DateTime?
+    duration      Int // Duración de la ausencia en horas o días, dependiendo de la unidad del tipo de ausencia
+    priority      Int // De 1 (menos importante) a 3 (más importante)
+    isShared      Boolean // Si el usuario decide compartir esta ausencia entre todos los equipos a los que pertenece
+
+    user        User        @relation(fields: [userId], references: [id])
+    absenceType AbsenceType @relation(fields: [absenceTypeId], references: [id])
 }
 
 model Role {
